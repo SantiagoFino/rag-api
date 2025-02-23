@@ -12,7 +12,7 @@ class ChatSession(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
 
     document = relationship("Document", backref="chat_sessions")
     messages = relationship("Message", back_populates="session")
@@ -25,7 +25,7 @@ class Message(Base):
     session_id = Column(UUID(as_uuid=True), ForeignKey("chat_session.id"))
     role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.now())
+    metadata_ = Column("metadata", JSONB, nullable=True)
 
     session = relationship("ChatSession", back_populates="messages")

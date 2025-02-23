@@ -8,7 +8,7 @@ from app.db.session import get_db
 from app.db.repositories.chat import ChatRepository
 from app.db.vector_store import VectorStore
 from app.api.v1.schemas.chat import ChatRequestSchema, ChatResponseSchema, MessageSchema
-from app.api.v1.schemas.common import ErrorResponse, SuccessResponse
+from app.api.v1.schemas.common import ErrorResponse
 
 
 router = APIRouter()
