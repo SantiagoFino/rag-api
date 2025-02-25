@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 class DocumentBaseSchema(BaseModel):
-    title: Optional[str]
+    title: Optional[str] = None
     description: Optional[str] = None
 
 

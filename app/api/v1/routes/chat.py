@@ -11,7 +11,7 @@ from app.api.v1.schemas.chat import ChatRequestSchema, ChatResponseSchema, Messa
 from app.api.v1.schemas.common import ErrorResponse
 
 
-router = APIRouter()
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @router.post("/", response_model=List[ChatResponseSchema])

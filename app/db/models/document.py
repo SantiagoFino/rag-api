@@ -15,3 +15,8 @@ class Document(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now())
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+
+    @property
+    def content_preview(self):
+        if self.content:
+            return self.content[:200]

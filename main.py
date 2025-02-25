@@ -13,7 +13,7 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
 
-app.include_router(document.router, prefix="/api/v1", tags=["document"])
+app.include_router(document.router, prefix="/api/v1", tags=["documents"])
 app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
 
 

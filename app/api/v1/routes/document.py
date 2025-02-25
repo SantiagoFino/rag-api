@@ -13,17 +13,17 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 @router.post("/", response_model=DocumentResponse)
-async def create_document(document: DocumentCreate, file_content: str, db: AsyncSession = Depends(get_db),
-                          vector_store: VectorStore = Depends(lambda: VectorStore)):
+async def create_document(document: DocumentCreate, db: AsyncSession = Depends(get_db),
+                          vector_store: VectorStore = Depends(lambda: VectorStore())):
     try:
         # stores the info in the postgres db
         document_repo = DocumentRepository(db)
         document = await document_repo.create(title=document.title,
-                                              content=file_content,
+                                              content=document.content,
                                               description=document.description)
 
         # saves the embeddings in the vector store
-        vector_store.add_texts([file_content])
+        vector_store.add_texts(content=[document.content])
 
         return document
     except Exception as e:
