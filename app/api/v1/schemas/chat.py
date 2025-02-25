@@ -5,7 +5,7 @@ from uuid import UUID
 
 
 class MessageSchema(BaseModel):
-    role: Field(..., pattern="^(user|assistant)$")
+    role: str
     content: str
     created_at: datetime
 

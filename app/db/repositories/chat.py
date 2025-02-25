@@ -15,13 +15,8 @@ class ChatRepository:
         await self.session.refresh(session)
         return session
 
-    async def add_message(
-        self,
-        session_id: uuid.UUID,
-        role: str,
-        content: str,
-        metadata: Optional[dict] = None
-    ) -> Message:
+    async def add_message(self, session_id: uuid.UUID, role: str, content: str, metadata: Optional[dict] = None
+                          ) -> Message:
         message = Message(
             session_id=session_id,
             role=role,
