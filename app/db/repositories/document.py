@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.models.document import Document
-from typing import Optional
+from typing import Optional, List
 import uuid
 
 class DocumentRepository:
@@ -19,5 +20,13 @@ class DocumentRepository:
         return doc
 
     async def get_by_id(self, doc_id: uuid.UUID) -> Optional[Document]:
-        result = await self.session.get(Document, doc_id)
-        return result
+        result = await self.session.execute(
+            select(Document).where(Document.id == doc_id)
+        )
+        return result.scalars().first()
+
+    async def get_all_documents(self) -> List[Document]:
+        result = await self.session.execute(
+            select(Document)
+        )
+        return list(result.scalars().all())

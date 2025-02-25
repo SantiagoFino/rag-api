@@ -20,3 +20,7 @@ async def get_db() -> AsyncGenerator:
         yield db
     finally:
         await db.close()
+
+
+async def async_session() -> AsyncSession:
+    return SessionLocal()

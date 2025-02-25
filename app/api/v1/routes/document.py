@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.db.repositories.document import DocumentRepository
-from app.db.vector_store import VectorStore
+from app.db.vector_store import VectorStore, get_vector_store
 from app.api.v1.schemas.document import DocumentCreate, DocumentResponse
 from app.api.v1.schemas.common import ErrorResponse
 from typing import List
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 @router.post("/", response_model=DocumentResponse)
 async def create_document(document: DocumentCreate, db: AsyncSession = Depends(get_db),
-                          vector_store: VectorStore = Depends(lambda: VectorStore())):
+                          vector_store: VectorStore = Depends(get_vector_store)):
     try:
         # stores the info in the postgres db
         document_repo = DocumentRepository(db)
