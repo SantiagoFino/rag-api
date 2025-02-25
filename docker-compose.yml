@@ -36,7 +36,6 @@ services:
     networks:
       - rag-network
 
-
 networks:
   rag-network:
     driver: bridge
