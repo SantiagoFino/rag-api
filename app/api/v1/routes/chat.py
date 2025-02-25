@@ -93,10 +93,7 @@ async def chat_with_document(chat_request: ChatRequestSchema, db: AsyncSession =
 
 
 @router.get("/{session_id}/messages", response_model=List[MessageSchema])
-async def get_chat_history(
-    session_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_chat_history(session_id: UUID, db: AsyncSession = Depends(get_db)):
     chat_repo = ChatRepository(db)
     messages = await chat_repo.get_session_messages(session_id)
     if not messages:
