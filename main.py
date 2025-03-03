@@ -1,42 +1,26 @@
-import uvicorn
-from fastapi import FastAPI
-from app.api.v1.routes import document, chat
-from app.db.session import Base, engine, async_session
-from app.db.vector_store import VectorStore
-from app.db.repositories.document import DocumentRepository
+import asyncio
+import logging
+from concurrent.futures import ProcessPoolExecutor
+from rabbitmq.consumers.document_indexing import DocumentIndexingConsumer
+from rabbitmq.consumers.ai_assistant import AIAssistantConsumer
+
+logger = logging.getLogger(__name__)
 
 
-app = FastAPI(title='RAG API', version='1.0.0')
+def start_document_indexing():
+    consumer = DocumentIndexingConsumer()
+    consumer.consume()
 
 
-@app.on_event('startup')
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+def start_ai_assistant():
+    consumer = AIAssistantConsumer()
+    consumer.consume()
 
 
-async def initialize_vector_store():
-    vector_store = VectorStore.get_instance()
+if __name__ == "__main__":
+    logger.info("Starting RAG API service")
 
-    async with async_session() as session:
-        # Get document repository
-        doc_repo = DocumentRepository(session)
-
-        documents = await doc_repo.get_all_documents()
-
-        texts = []
-        for doc in documents:
-            if hasattr(doc, 'content'):
-                texts.append(doc.content)
-
-        if texts:
-            vector_store.add_texts(texts)
-
-
-app.include_router(document.router, prefix="/api/v1", tags=["documents"])
-app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+    # Use process pool to run consumers in separate processes
+    with ProcessPoolExecutor(max_workers=2) as executor:
+        executor.submit(start_document_indexing)
+        executor.submit(start_ai_assistant)
