@@ -5,8 +5,7 @@ services:
     env_file: .env
     depends_on:
       - ollama
-    networks:
-      - rag-network
+    network_mode: "host"  # Gives direct access to local network
 
   ollama:
     image: ollama/ollama:latest
@@ -14,9 +13,10 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ollama-data:/root/.ollama
-    networks:
-      - rag-network
+        - ./ollama/ollama:/root/.ollama
+        - ./ollama_entrypoint.sh:/entrypoint.sh
+    entrypoint: [ "/usr/bin/bash", "/entrypoint.sh" ]
+
 
 networks:
   rag-network:

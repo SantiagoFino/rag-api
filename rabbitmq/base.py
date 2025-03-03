@@ -28,8 +28,8 @@ class MessageConsumer(ABC):
         async with self.semaphore:
             body = json.loads(message.body)
             print(f" [x] {self.__consumption_exchange__} | Received {body}\n")
-            await message.ack()
             await self(body)
+            await message.ack()
             print(f" [x] {self.__consumption_exchange__} | Job finished!\n")
 
     async def start_consuming(self):

@@ -84,8 +84,11 @@ asyncpg = "*"
 python-decouple = "*"
 aio-pika = "*"
 mysql-connector-python = "*"
+aiohttp = "*"
+psycopg = {extras = ["pool", "binary"], version = "*"}
 
 [dev-packages]
+psycopg = {extras = ["binary", "pool"], version = "*"}
 
 [requires]
 python_version = "3.12"

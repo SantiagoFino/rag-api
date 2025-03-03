@@ -47,40 +47,8 @@ class DocumentRetriever:
                 query_embedding = query_embedding / norm
 
             # Get all documents with embeddings from the database
-            documents = await self._get_documents_with_embeddings()
-
-            if not documents:
-                logger.warning("No documents with embeddings found in the database")
-                return []
-
-            scored_documents = []
-            for doc in documents:
-                if not doc.get('embedding'):
-                    continue
-
-                try:
-                    doc_embedding = np.array(doc['embedding'])
-                    similarity = np.dot(query_embedding, doc_embedding)
-
-                    scored_documents.append({
-                        'document': doc,
-                        'similarity': float(similarity)
-                    })
-                except Exception as e:
-                    logger.error(f"Error calculating similarity for document {doc.get('id')}: {str(e)}")
-
-            # sort by similarity score
-            scored_documents.sort(key=lambda x: x['similarity'], reverse=True)
-
-            # Take top_k documents
-            top_documents = []
-            for item in scored_documents[:top_k]:
-                doc = item['document']
-                doc['similarity'] = item['similarity']
-                top_documents.append(doc)
-
-            logger.info(f"Retrieved {len(top_documents)} documents for query")
-            return top_documents
+            documents = self.db.query_documents_by_embedding(query_embedding, top_k)
+            return documents
 
         except Exception as e:
             logger.exception(f"Error retrieving documents: {str(e)}")

@@ -3,6 +3,7 @@ import json
 import time
 from typing import Dict, Any, List, Optional
 
+from db import get_db_connector, DatabaseConnector
 from rabbitmq.base import MessageConsumer
 from llm.ollama_client import get_llm_client
 from llm.retrieval import get_document_retriever
@@ -22,6 +23,7 @@ class AIAssistantConsumer(MessageConsumer):
         super().__init__()
         self.llm = get_llm_client()
         self.retriever = get_document_retriever()
+        self.db: DatabaseConnector = get_db_connector()
         logger.info("AI assistant consumer initialized")
 
     async def __call__(self, message: Dict[str, Any]):
@@ -32,6 +34,7 @@ class AIAssistantConsumer(MessageConsumer):
             message: A dictionary containing 'messages' list
         """
         try:
+            chat_id = message.get("chat_id")
             messages = message.get("messages", [])
 
             if not messages:
@@ -60,13 +63,9 @@ class AIAssistantConsumer(MessageConsumer):
             # Create response message
             response_message = self._create_response_message(response_text)
 
-            # Add response to messages list
-            messages.append(response_message)
-
-            # Update message with the new messages with the llm response
-            message["messages"] = messages
-
             logger.info(f"Generated response: {response_text[:100]}...")
+
+            self.db.add_message_to_chat(chat_id=chat_id, message=response_message)
 
         except Exception as e:
             logger.exception(f"Error processing message: {str(e)}")

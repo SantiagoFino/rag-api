@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-import mysql.connector
+from psycopg_pool import ConnectionPool
 from typing import Dict, Any, Optional
 import numpy as np
 
@@ -37,24 +37,12 @@ class DatabaseConnector:
         }
 
         try:
-            self.connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-                pool_name="db_pool",
-                pool_size=5,
-                **db_config
-            )
+            self.connection_pool = ConnectionPool(
+                f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}",
+                min_size=1, max_size=5)
             logger.info("Database connection pool created successfully")
         except Exception as e:
             logger.error(f"Error creating database connection pool: {str(e)}")
-            raise
-
-    def get_connection(self):
-        """
-        Get a connection from the pool
-        """
-        try:
-            return self.connection_pool.get_connection()
-        except Exception as e:
-            logger.error(f"Error getting database connection: {str(e)}")
             raise
 
     def update_document_embedding(self, document_id: int, embedding: np.ndarray) -> bool:
@@ -70,82 +58,62 @@ class DatabaseConnector:
         """
         embedding_json = json.dumps(embedding.tolist())
 
-        connection = None
-        try:
-            connection = self.get_connection()
-            cursor = connection.cursor()
+        with self.connection_pool.connection() as connection:
+            with connection.cursor() as cursor:
+                # Update the document embedding
+                update_query = """
+                UPDATE documents
+                SET embedding = %s
+                WHERE id = %s
+                """
 
-            # Update the document embedding
-            update_query = """
-            UPDATE documents
-            SET embedding = %s
-            WHERE id = %s
-            """
+                cursor.execute(update_query, (embedding_json, document_id))
+                connection.commit()
 
-            cursor.execute(update_query, (embedding_json, document_id))
-            connection.commit()
+                if cursor.rowcount == 0:
+                    logger.warning(f"Document {document_id} not found in the database")
+                    return False
 
-            if cursor.rowcount == 0:
-                logger.warning(f"Document {document_id} not found in the database")
-                return False
+                logger.info(f"Updated embedding for document {document_id}")
+                return True
 
-            logger.info(f"Updated embedding for document {document_id}")
-            return True
+    def query_documents_by_embedding(self, query_embedding, top_k=5):
+        query = '''
+        SELECT id, name, text, embedding, account_id, documents.embedding <=> %s AS distance
+        FROM documents
+        ORDER BY distance ASC
+        LIMIT %s
+        '''
 
-        except Exception as e:
-            logger.error(f"Error updating document {document_id} embedding: {str(e)}")
-            if connection:
-                connection.rollback()
-            return False
+        embedding_json = json.dumps(query_embedding.tolist())
+        with self.connection_pool.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, (embedding_json, top_k))
+                raw_docs = cursor.fetchall()
+                documents = [{
+                    "id": doc[0],
+                    "name": doc[1],
+                    "text": doc[2],
+                    "embedding": doc[3],
+                    "account_id": doc[4]
+                } for doc in raw_docs]
+                return documents
 
-        finally:
-            if connection:
-                connection.close()
 
-    def get_document(self, document_id: int) -> Optional[Dict[str, Any]]:
-        """
-        Gets a document from the database
+    def add_message_to_chat(self, chat_id: int, message: Dict[str, Any]):
+        add_message_query = '''
+        UPDATE chats
+        SET messages       = messages || %s::jsonb,
+            unread_messages= true
+        WHERE id = %s
+        RETURNING *;
+        '''
 
-        Args:
-            document_id: The ID of the document
+        with self.connection_pool.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(add_message_query, (json.dumps(message), chat_id))
+                connection.commit()
 
-        Returns:
-            The document as a dictionary, or None if not found
-        """
-        connection = None
-        try:
-            connection = self.get_connection()
-            cursor = connection.cursor(dictionary=True)
-
-            query = """
-            SELECT id, name, text, embedding, account_id
-            FROM documents
-            WHERE id = %s
-            """
-
-            cursor.execute(query, (document_id,))
-            document = cursor.fetchone()
-
-            if not document:
-                logger.warning(f"Document {document_id} not found in the database")
-                return None
-
-            if document.get('embedding'):
-                try:
-                    document['embedding'] = json.loads(document['embedding'])
-                except json.JSONDecodeError:
-                    logger.warning(f"Could not parse embedding for document {document_id}")
-                    document['embedding'] = None
-
-            return document
-
-        except Exception as e:
-            logger.error(f"Error getting document {document_id}: {str(e)}")
-            return None
-
-        finally:
-            if connection:
-                connection.close()
 
 
 def get_db_connector():
