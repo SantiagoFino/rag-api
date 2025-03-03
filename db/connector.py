@@ -2,8 +2,7 @@ import os
 import json
 import logging
 import mysql.connector
-from mysql.connector import pooling
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 import numpy as np
 
 logger = logging.getLogger(__name__)
