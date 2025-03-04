@@ -1,14 +1,26 @@
 import logging
-import json
-import time
+from datetime import datetime
 from typing import Dict, Any, List, Optional
+from zoneinfo import ZoneInfo
 
 from db import get_db_connector, DatabaseConnector
-from rabbitmq.base import MessageConsumer
 from llm.ollama_client import get_llm_client
 from llm.retrieval import get_document_retriever
+from rabbitmq.base import MessageConsumer
 
 logger = logging.getLogger(__name__)
+
+
+def get_time():
+
+    tz = ZoneInfo("America/New_York")
+    now = datetime.now(tz)
+
+    # Extracting nanoseconds manually
+    nanoseconds = now.microsecond * 1000
+    formatted_time = f"{now.strftime('%Y-%m-%dT%H:%M:%S')}.{nanoseconds:09d}{now.strftime('%z')}"
+    formatted_time = formatted_time[:-2] + ":" + formatted_time[-2:]  # Format timezone offset
+    return formatted_time
 
 
 class AIAssistantConsumer(MessageConsumer):
@@ -92,13 +104,14 @@ class AIAssistantConsumer(MessageConsumer):
         Returns:
             A message dictionary
         """
-        current_time = time.time()
+        formatted_time = get_time()
         return {
-            "id": f"msg{current_time}",
-            "timestamp": current_time,
+            "id": f"msg{formatted_time}",
+            "timestamp": formatted_time,
             "sender": "assistant",
             "text": text
         }
+
 
     def _prepare_context(self, documents: List[Dict[str, Any]]) -> Optional[str]:
         """

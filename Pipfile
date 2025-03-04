@@ -89,6 +89,7 @@ psycopg = {extras = ["pool", "binary"], version = "*"}
 
 [dev-packages]
 psycopg = {extras = ["binary", "pool"], version = "*"}
+ipython = "*"
 
 [requires]
 python_version = "3.12"
