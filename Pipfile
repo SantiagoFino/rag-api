@@ -81,8 +81,15 @@ uvloop = "==0.21.0"
 watchfiles = "==1.0.4"
 websockets = "==15.0"
 asyncpg = "*"
+python-decouple = "*"
+aio-pika = "*"
+mysql-connector-python = "*"
+aiohttp = "*"
+psycopg = {extras = ["pool", "binary"], version = "*"}
 
 [dev-packages]
+psycopg = {extras = ["binary", "pool"], version = "*"}
+ipython = "*"
 
 [requires]
 python_version = "3.12"

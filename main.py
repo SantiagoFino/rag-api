@@ -1,42 +1,74 @@
-import uvicorn
-from fastapi import FastAPI
-from app.api.v1.routes import document, chat
-from app.db.session import Base, engine, async_session
-from app.db.vector_store import VectorStore
-from app.db.repositories.document import DocumentRepository
+import logging
+import os
+import asyncio
+import signal
+import sys
+from concurrent.futures import ProcessPoolExecutor
+from dotenv import load_dotenv
+
+from rabbitmq.consumers.document_indexing import DocumentIndexingConsumer
+from rabbitmq.consumers.ai_assistant import AIAssistantConsumer
 
 
-app = FastAPI(title='RAG API', version='1.0.0')
+load_dotenv()
+
+logging.basicConfig(
+    level=os.getenv('LOG_LEVEL', 'INFO'),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 
-@app.on_event('startup')
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+executor = None
 
 
-async def initialize_vector_store():
-    vector_store = VectorStore.get_instance()
-
-    async with async_session() as session:
-        # Get document repository
-        doc_repo = DocumentRepository(session)
-
-        documents = await doc_repo.get_all_documents()
-
-        texts = []
-        for doc in documents:
-            if hasattr(doc, 'content'):
-                texts.append(doc.content)
-
-        if texts:
-            vector_store.add_texts(texts)
+def signal_handler(sig, frame):
+    """Handle termination signals"""
+    logger.info("Received termination signal. Shutting down...")
+    if executor:
+        executor.shutdown(wait=False)
+    sys.exit(0)
 
 
-app.include_router(document.router, prefix="/api/v1", tags=["documents"])
-app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
+def start_document_indexing():
+    """Start the document indexing consumer"""
+    try:
+        logger.info("Starting document indexing consumer")
+        consumer = DocumentIndexingConsumer()
+        consumer.consume()
+    except Exception as e:
+        logger.exception(f"Error in document indexing consumer: {str(e)}")
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+def start_ai_assistant():
+    """Start the AI assistant consumer"""
+    try:
+        logger.info("Starting AI assistant consumer")
+        consumer = AIAssistantConsumer()
+        consumer.consume()
+    except Exception as e:
+        logger.exception(f"Error in AI assistant consumer: {str(e)}")
+
+
+if __name__ == "__main__":
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    logger.info("Starting RAG API service")
+
+    try:
+        executor = ProcessPoolExecutor(max_workers=2)
+        executor.submit(start_document_indexing)
+        executor.submit(start_ai_assistant)
+
+        logger.info("RAG API service started.")
+        while True:
+            asyncio.sleep(1)
+
+    except Exception as e:
+        logger.exception(f"Error starting RAG API service: {str(e)}")
+        if executor:
+            executor.shutdown(wait=False)
+        sys.exit(1)

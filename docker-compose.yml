@@ -1,28 +1,21 @@
 services:
-  api:
+  rag-api:
     build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@db/ragdb
+    restart: unless-stopped
+    env_file: .env
     depends_on:
-      - db
-    networks:
-      - rag-network
+      - ollama
+    network_mode: "host"  # Gives direct access to local network
 
-  db:
-    image: postgres:14
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
     ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=yourpassword
-      - POSTGRES_DB=ragdb
+      - "11434:11434"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - rag-network
-
+        - ./ollama/ollama:/root/.ollama
+        - ./ollama_entrypoint.sh:/entrypoint.sh
+    entrypoint: [ "/usr/bin/bash", "/entrypoint.sh" ]
 
 
 networks:
@@ -30,4 +23,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  ollama-data:
