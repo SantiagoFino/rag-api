@@ -86,6 +86,7 @@ aio-pika = "*"
 mysql-connector-python = "*"
 aiohttp = "*"
 psycopg = {extras = ["pool", "binary"], version = "*"}
+google-generativeai = "*"
 
 [dev-packages]
 psycopg = {extras = ["binary", "pool"], version = "*"}
