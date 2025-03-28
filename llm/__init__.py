@@ -1,9 +1,8 @@
-from llm.ollama_client import get_llm_client, OllamaClient
+from llm.gemini_client import GeminiClient
 from llm.retrieval import get_document_retriever, DocumentRetriever
 
 __all__ = [
-    'get_llm_client',
-    'OllamaClient',
+    'GeminiClient',
     'get_document_retriever',
     'DocumentRetriever'
 ]

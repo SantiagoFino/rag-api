@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 
 from db import get_db_connector, DatabaseConnector
 from llm.gemini_client import GeminiClient
-from llm.ollama_client import get_llm_client
 from llm.retrieval import get_document_retriever
 from rabbitmq.base import MessageConsumer
 
