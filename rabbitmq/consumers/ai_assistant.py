@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Optional
 from zoneinfo import ZoneInfo
 
 from db import get_db_connector, DatabaseConnector
-from llm.ollama_client import get_llm_client
+from llm.gemini_client import GeminiClient
 from llm.retrieval import get_document_retriever
 from rabbitmq.base import MessageConsumer
 
@@ -33,7 +33,7 @@ class AIAssistantConsumer(MessageConsumer):
     def __init__(self):
         """Initialize the consumer with LLM client and document retriever"""
         super().__init__()
-        self.llm = get_llm_client()
+        self.llm = GeminiClient.get_instance()
         self.retriever = get_document_retriever()
         self.db: DatabaseConnector = get_db_connector()
         logger.info("AI assistant consumer initialized")

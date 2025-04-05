@@ -3,6 +3,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/cpu"
+verify_ssl = true
+name = "torchcpu"
+
 [packages]
 annotated-types = "==0.7.0"
 anyio = "==4.8.0"
@@ -11,7 +16,6 @@ charset-normalizer = "==3.4.1"
 click = "==8.1.8"
 dnspython = "==2.7.0"
 email-validator = "==2.2.0"
-faiss-cpu = "==1.10.0"
 fastapi = "==0.115.8"
 fastapi-cli = "==0.0.7"
 filelock = "==3.17.0"
@@ -68,7 +72,6 @@ starlette = "==0.45.3"
 sympy = "==1.13.1"
 threadpoolctl = "==3.5.0"
 tokenizers = "==0.21.0"
-torch = "==2.6.0"
 tqdm = "==4.67.1"
 transformers = "==4.49.0"
 triton = "==3.2.0"
@@ -83,9 +86,10 @@ websockets = "==15.0"
 asyncpg = "*"
 python-decouple = "*"
 aio-pika = "*"
-mysql-connector-python = "*"
 aiohttp = "*"
 psycopg = {extras = ["pool", "binary"], version = "*"}
+google-generativeai = "*"
+torch = {version = "*", index = "torchcpu"}
 
 [dev-packages]
 psycopg = {extras = ["binary", "pool"], version = "*"}

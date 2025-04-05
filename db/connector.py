@@ -29,10 +29,10 @@ class DatabaseConnector:
         logger.info("Initializing Database Connector")
         db_config = {
             'host': os.getenv('DB_HOST', 'localhost'),
-            'user': os.getenv('DB_USER', 'root'),
-            'password': os.getenv('DB_PASSWORD', ''),
-            'database': os.getenv('DB_NAME', 'rag_db'),
-            'port': int(os.getenv('DB_PORT', '3306')),
+            'user': os.getenv('DB_USER', 'cloud_solutions'),
+            'password': os.getenv('DB_PASSWORD', 'cloud_solutions'),
+            'database': os.getenv('DB_NAME', 'cloud_solutions'),
+            'port': int(os.getenv('DB_PORT', '5432')),
             'use_pure': True,
         }
 
