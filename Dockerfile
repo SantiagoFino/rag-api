@@ -1,17 +1,11 @@
-FROM ubuntu:latest
-LABEL authors="sfinov"
-
 FROM python:3.12.9-bookworm
 
 WORKDIR /app
 
-RUN pip install pipenv
+COPY requirements.txt ./
 
 
-COPY Pipfile Pipfile.lock ./
-
-
-RUN pipenv install --deploy --system
+RUN pip install -r requirements.txt
 
 
 COPY . .
