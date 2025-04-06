@@ -29,8 +29,11 @@ class GeminiClient:
         chat_session = self.gemini_model.start_chat()
 
         # Convert chat history (excluding the last message) to AI format
-        context_message = {"role": "user", "parts": [context]} if context else None
-        ai_messages = [context_message] + [self.to_genai_message(msg) for msg in messages[:-1] if msg["text"]]
+
+        ai_messages = [self.to_genai_message(msg) for msg in messages[:-1] if msg["text"]]
+        if context:
+            context_message = {"role": "user", "parts": [context]} if context else None
+            ai_messages += [context_message]
 
         # Assign the history to the session
         chat_session.history = ai_messages
