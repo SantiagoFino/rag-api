@@ -1,12 +1,15 @@
+import os
 from types import TracebackType
 from typing import Optional, Type
+from dotenv import load_dotenv
 
-from decouple import config
 from aio_pika import connect_robust, RobustConnection
+
+load_dotenv()
 
 
 class RabbitMqConnection:
-    __url = f'{config("CLOUDAMQP_URL")}?heartbeat=60'
+    __url = f'{os.getenv("CLOUDAMQP_URL")}?heartbeat=60'
 
     def __init__(self):
         self.connection: Optional[RobustConnection] = None
