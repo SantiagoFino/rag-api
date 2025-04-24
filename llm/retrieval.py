@@ -82,18 +82,20 @@ class DocumentRetriever:
                     try:
                         doc['embedding'] = json.loads(doc['embedding'])
                     except json.JSONDecodeError:
-                        logger.warning(f"Could not parse embedding for document {doc.get('id')}")
+                        logger.exception(f"Could not parse embedding for document {doc.get('id')}")
                         doc['embedding'] = None
 
             return documents
 
         except Exception as e:
-            logger.error(f"Error getting documents with embeddings: {str(e)}")
+            logger.exception(f"Error getting documents with embeddings: {str(e)}")
             return []
 
         finally:
             if connection:
                 connection.close()
+
+            return []
 
 
 def get_document_retriever():

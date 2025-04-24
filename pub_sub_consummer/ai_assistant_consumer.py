@@ -1,34 +1,15 @@
-import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from zoneinfo import ZoneInfo
 
-from db import get_db_connector, DatabaseConnector
-from llm.gemini_client import GeminiClient
-from llm.retrieval import get_document_retriever
-from rabbitmq.base import MessageConsumer
-
-logger = logging.getLogger(__name__)
+from db import DatabaseConnector, get_db_connector
+from llm import GeminiClient, get_document_retriever
+from pub_sub_consummer.pub_sub_consumer import PubSubConsumer
 
 
-def get_time():
+class AiAssistantConsumer(PubSubConsumer):
 
-    tz = ZoneInfo("America/New_York")
-    now = datetime.now(tz)
-
-    # Extracting nanoseconds manually
-    nanoseconds = now.microsecond * 1000
-    formatted_time = f"{now.strftime('%Y-%m-%dT%H:%M:%S')}.{nanoseconds:09d}{now.strftime('%z')}"
-    formatted_time = formatted_time[:-2] + ":" + formatted_time[-2:]  # Format timezone offset
-    return formatted_time
-
-
-class AIAssistantConsumer(MessageConsumer):
-    """
-    Consumer for the AI assistant queue. Processes messages, retrieves relevant documents, and generates responses.
-    """
-    __consumption_exchange__ = "ai-assistant-exchange"
-    __consumption_queue__ = "ai-assistant-queue"
+    __subscription_id__ = "AiAssistant-sub"
 
     def __init__(self):
         """Initialize the consumer with LLM client and document retriever"""
@@ -36,9 +17,9 @@ class AIAssistantConsumer(MessageConsumer):
         self.llm = GeminiClient.get_instance()
         self.retriever = get_document_retriever()
         self.db: DatabaseConnector = get_db_connector()
-        logger.info("AI assistant consumer initialized")
+        self.logger.info("AI assistant consumer initialized")
 
-    async def __call__(self, message: Dict[str, Any]):
+    async def callback(self, message: Dict[str, Any]):
         """
         Process a message and generate a response.
 
@@ -50,7 +31,7 @@ class AIAssistantConsumer(MessageConsumer):
             messages = message.get("messages", [])
 
             if not messages:
-                logger.error("Invalid message: missing or empty messages list")
+                self.logger.error("Invalid message: missing or empty messages list")
                 return
 
             # Get the last message (the user's question)
@@ -58,10 +39,10 @@ class AIAssistantConsumer(MessageConsumer):
             query_text = last_message.get("text", "")
 
             if not query_text:
-                logger.error("Invalid message: last message has no text")
+                self.logger.error("Invalid message: last message has no text")
                 return
 
-            logger.info(f"Processing query: {query_text}")
+            self.logger.info(f"Processing query: {query_text}")
 
             # Retrieve relevant documents
             relevant_docs = await self.retriever.retrieve_documents(query_text, top_k=3)
@@ -75,12 +56,12 @@ class AIAssistantConsumer(MessageConsumer):
             # Create response message
             response_message = self._create_response_message(response_text)
 
-            logger.info(f"Generated response: {response_text[:100]}...")
+            self.logger.info(f"Generated response: {response_text[:100]}...")
 
             self.db.add_message_to_chat(chat_id=chat_id, message=response_message)
 
         except Exception as e:
-            logger.exception(f"Error processing message: {str(e)}")
+            self.logger.exception(f"Error processing message: {str(e)}")
 
             # Add an error response if possible
             try:
@@ -92,7 +73,18 @@ class AIAssistantConsumer(MessageConsumer):
                     message["messages"].append(error_message)
 
             except Exception as e:
-                logger.exception("Error creating error response")
+                self.logger.exception("Error creating error response")
+
+    @staticmethod
+    def _get_time():
+        tz = ZoneInfo("America/New_York")
+        now = datetime.now(tz)
+
+        # Extracting nanoseconds manually
+        nanoseconds = now.microsecond * 1000
+        formatted_time = f"{now.strftime('%Y-%m-%dT%H:%M:%S')}.{nanoseconds:09d}{now.strftime('%z')}"
+        formatted_time = formatted_time[:-2] + ":" + formatted_time[-2:]  # Format timezone offset
+        return formatted_time
 
     def _create_response_message(self, text: str) -> Dict[str, Any]:
         """
@@ -104,14 +96,13 @@ class AIAssistantConsumer(MessageConsumer):
         Returns:
             A message dictionary
         """
-        formatted_time = get_time()
+        formatted_time = self._get_time()
         return {
             "id": f"msg{formatted_time}",
             "timestamp": formatted_time,
             "sender": "assistant",
             "text": text
         }
-
 
     def _prepare_context(self, documents: List[Dict[str, Any]]) -> Optional[str]:
         """
@@ -150,12 +141,4 @@ class AIAssistantConsumer(MessageConsumer):
         return "\n".join(context_parts)
 
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
 
-    # Start the consumer
-    ai_assistant = AIAssistantConsumer()
-    ai_assistant.consume()
