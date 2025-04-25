@@ -10,6 +10,9 @@ COPY pyproject.toml .
 RUN uv venv .venv
 RUN uv sync --frozen
 
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 COPY . .
 
 COPY rag-service-account.json rag-service-account.json
