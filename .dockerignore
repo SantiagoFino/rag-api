@@ -1,2 +1,8 @@
 .venv
 .env
+
+document_indexing.dockerfile
+ai_assistant.dockerfile
+.gitignore
+example.env
+README.md
