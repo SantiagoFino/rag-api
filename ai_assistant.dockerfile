@@ -10,4 +10,4 @@ RUN uv sync --frozen
 COPY rag-service-account.json rag-service-account.json
 
 
-CMD ["uv", "run", "ai_assistant_worker.py"]
+CMD ["python", "ai_assistant_worker.py"]
