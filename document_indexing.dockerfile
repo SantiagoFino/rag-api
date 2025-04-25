@@ -10,4 +10,4 @@ RUN uv sync --frozen
 COPY rag-service-account.json rag-service-account.json
 
 
-CMD ["python", "document_indexing_worker.py"]
+CMD ["uv", "run" , "document_indexing_worker.py"]
