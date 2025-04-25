@@ -1,19 +1,18 @@
-FROM python:3.12.9-bookworm
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm
 
 WORKDIR /app
 
-COPY .python-version .
-COPY uv.lock .
-COPY pyproject.toml .
+ENV UV_LINK_MODE=copy
 
-RUN uv venv .venv
-RUN uv sync --frozen
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-dev
 
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY . .
+COPY . /app
 
 COPY rag-service-account.json rag-service-account.json
 
