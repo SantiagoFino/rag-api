@@ -8,4 +8,4 @@ COPY . .
 RUN uv sync --frozen
 
 
-CMD ["uv", "run", "my_app"]
+CMD ["uv", "run", "document_indexing_worker.py"]
