@@ -171,3 +171,5 @@ cython_debug/
 .pypirc
 .idea
 ollama
+qodana.yaml
+rag-service-account.json

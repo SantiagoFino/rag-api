@@ -1,31 +1,28 @@
-import logging
+from typing import Dict, Any, Optional
+
 import numpy as np
-from typing import Dict, Any
-
-from rabbitmq.base import MessageConsumer
 from sentence_transformers import SentenceTransformer
-from vector_store.chunking import chunk_text
+
 from db.connector import get_db_connector
+from pub_sub_consummer.pub_sub_consumer import PubSubConsumer
+from vector_store.chunking import chunk_text
 
-logger = logging.getLogger(__name__)
 
-
-class DocumentIndexingConsumer(MessageConsumer):
+class DocumentIndexingConsumer(PubSubConsumer):
     """
     Consumer for the document indexing queue.
     Processes documents, generates embeddings, and updates the database.
     """
-    __consumption_exchange__ = "document-indexing-exchange"
-    __consumption_queue__ = "document-indexing-queue"
+    __subscription_id__ = "DocumentIndexing-sub"
 
     def __init__(self):
         """Initialize the consumer with the embedding model and database connector"""
         super().__init__()
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
         self.db = get_db_connector()
-        logger.info("Document indexing consumer initialized")
+        self.logger.info("Document indexing consumer initialized")
 
-    async def __call__(self, message: Dict[str, Any]):
+    async def callback(self, message: Dict[str, Any]):
         """
         Process a document indexing message
 
@@ -37,14 +34,14 @@ class DocumentIndexingConsumer(MessageConsumer):
             document_text = message.get("document_text")
 
             if not document_id:
-                logger.error("Invalid message: missing document_id")
+                self.logger.error("Invalid message: missing document_id")
                 return
 
             if not document_text:
-                logger.error(f"Invalid message for document {document_id}: missing document_text")
+                self.logger.error(f"Invalid message for document {document_id}: missing document_text")
                 return
 
-            logger.info(f"Processing document {document_id} with {len(document_text)} characters")
+            self.logger.info(f"Processing document {document_id} with {len(document_text)} characters")
 
             embedding = self._generate_document_embedding(document_text)
 
@@ -52,14 +49,15 @@ class DocumentIndexingConsumer(MessageConsumer):
                 success = self.db.update_document_embedding(document_id, embedding)
 
                 if success:
-                    logger.info(f"Successfully indexed document {document_id}")
+                    self.logger.info(f"Successfully indexed document {document_id}")
                 else:
-                    logger.error(f"Failed to update document {document_id} in the database")
+                    self.logger.error(f"Failed to update document {document_id} in the database")
 
         except Exception as e:
-            logger.exception(f"Error processing document {message.get('document_id', 'unknown')}: {str(e)}")
+            self.logger.exception(f"Error processing document {message.get('document_id', 'unknown')}: {str(e)}")
 
-    def _generate_document_embedding(self, text: str, chunk_size: int = 500, chunk_overlap: int = 50) -> np.ndarray:
+    def _generate_document_embedding(self, text: str, chunk_size: int = 500, chunk_overlap: int = 50) -> Optional[
+        np.ndarray]:
         """
         Generate a document embedding by chunking the text and averaging chunk embeddings.
 
@@ -75,7 +73,7 @@ class DocumentIndexingConsumer(MessageConsumer):
             chunks = chunk_text(text, chunk_size, chunk_overlap)
 
             if not chunks:
-                logger.warning("No chunks generated from document text")
+                self.logger.warning("No chunks generated from document text")
                 # If no chunks, just encode the first 512 characters
                 chunks = [text[:512]]
 
@@ -86,20 +84,9 @@ class DocumentIndexingConsumer(MessageConsumer):
             if norm > 0:
                 avg_embedding = avg_embedding / norm
 
-            logger.info(f"Generated embedding from {len(chunks)} chunks")
+            self.logger.info(f"Generated embedding from {len(chunks)} chunks")
             return avg_embedding
 
         except Exception as e:
-            logger.error(f"Error generating document embedding: {str(e)}")
+            self.logger.error(f"Error generating document embedding: {str(e)}")
             return None
-
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-
-    # Start the consumer
-    document_indexer = DocumentIndexingConsumer()
-    document_indexer.consume()
